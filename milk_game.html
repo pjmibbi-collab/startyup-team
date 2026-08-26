@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>몽실몽실 급식 우유 마시기 타임!</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #FFFDF0; /* 아이보리색 */
+      --pink-color: #FFB7B2; /* 연한 분홍 */
+      --sky-color: #A0C4FF; /* 연한 하늘 */
+      --white: #FFFFFF;
+      --text-color: #4A4A4A;
+      --shadow-color: rgba(160, 196, 255, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Jua', 'Gowun Dodum', sans-serif;
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* 배경 구름 및 젖소 아이콘 장식 */
+    .bg-decor {
+      position: absolute;
+      font-size: 3rem;
+      opacity: 0.5;
+      animation: float 6s ease-in-out infinite;
+      z-index: 0;
+    }
+    .bg-decor.cloud1 { top: 5%; left: 5%; animation-delay: 0s; }
+    .bg-decor.cloud2 { top: 15%; right: 8%; animation-delay: 2s; }
+    .bg-decor.cow1 { bottom: 10%; left: 8%; animation-delay: 4s; }
+    .bg-decor.milk1 { bottom: 15%; right: 5%; animation-delay: 1s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-15px) rotate(3deg); }
+    }
+
+    /* 메인 컨테이너 (구름 모양 레이아웃) */
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      color: #5C628D;
+      text-shadow: 3px 3px 0px var(--white), 5px 5px 0px var(--sky-color);
+      margin-bottom: 5px;
+    }
+
+    p.subtitle {
+      font-size: 1.3rem;
+      color: #888;
+    }
+
+    /* 메인 타이머 디스플레이 카드 (몽실몽실 구름 스타일) */
+    .timer-card {
+      background: var(--white);
+      border-radius: 60px;
+      padding: 30px 50px;
+      box-shadow: 0 15px 35px var(--shadow-color), inset 0 0 15px rgba(255, 255, 255, 0.8);
+      border: 6px solid var(--sky-color);
+      width: 100%;
+      text-align: center;
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .status-badge {
+      display: inline-block;
+      background-color: var(--pink-color);
+      color: var(--white);
+      padding: 8px 25px;
+      border-radius: 30px;
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 10px rgba(255, 183, 178, 0.4);
+    }
+
+    /* 중앙에 거대하게 배치되는 남은 시간 (150px 이상) */
+    .timer-display {
+      font-family: 'Impact', sans-serif;
+      font-size: 160px;
+      line-height: 1.1;
+      color: #3B4269;
+      text-shadow: 6px 6px 0px var(--sky-color), 10px 10px 0px rgba(0,0,0,0.05);
+      margin: 10px 0;
+      letter-spacing: 2px;
+    }
+
+    /* 게임 컨트롤 버튼 그룹 */
+    .game-buttons {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 30px;
+      width: 100%;
+    }
+
+    /* 구름 스타일 둥근 버튼 */
+    .cloud-btn {
+      background: var(--sky-color);
+      color: var(--white);
+      border: none;
+      padding: 15px 25px;
+      font-size: 1.3rem;
+      font-family: 'Jua', sans-serif;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08), inset 0 -4px 0 rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 호버 효과: 밝아짐 & 튀어오름 */
+    .cloud-btn:hover {
+      filter: brightness(1.15);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12), inset 0 -4px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .cloud-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .cloud-btn.pink {
+      background: var(--pink-color);
+    }
+
+    .cloud-btn.yellow {
+      background: #FFE494;
+      color: #6C5B27;
+    }
+
+    .cloud-btn.green {
+      background: #B5EAD7;
+      color: #2D5A4C;
+    }
+
+    /* 우유 체크리스트 섹션 */
+    .checklist-section {
+      background: var(--white);
+      border-radius: 40px;
+      padding: 25px 35px;
+      width: 100%;
+      box-shadow: 0 10px 25px var(--shadow-color);
+      border: 4px dashed var(--pink-color);
+    }
+
+    .checklist-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .checklist-title {
+      font-size: 1.8rem;
+      color: #4A4A4A;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 25px;
+      background-color: #F0F0F0;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      border: 2px solid #E0E0E0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--sky-color), var(--pink-color));
+      border-radius: 20px;
+      transition: width 0.4s ease;
+    }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 5px;
+    }
+
+    .student-card {
+      background: var(--bg-color);
+      border: 2px solid #E2E8F0;
+      border-radius: 20px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .student-card:hover {
+      transform: scale(1.05);
+      border-color: var(--sky-color);
+    }
+
+    .student-card.checked {
+      background: #E8F5E9;
+      border-color: #81C784;
+    }
+
+    .student-card .icon {
+      font-size: 1.8rem;
+    }
+
+    .student-card .name {
+      font-size: 1.1rem;
+    }
+
+    /* 오디오 컨트롤러 floating */
+    .audio-control {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--white);
+      padding: 10px 18px;
+      border-radius: 30px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+      border: 2px solid var(--sky-color);
+    }
+
+    /* 반응형 레이아웃 조정 */
+    @media (max-width: 768px) {
+      .timer-display {
+        font-size: 110px;
+      }
+      h1 {
+        font-size: 2.2rem;
+      }
+      .cloud-btn {
+        padding: 12px 18px;
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 배경 장식 요소를 위한 이모지 구름 및 젖소 -->
+  <div class="bg-decor cloud1">☁️</div>
+  <div class="bg-decor cloud2">☁️</div>
+  <div class="bg-decor cow1">🐮</div>
+  <div class="bg-decor milk1">🥛</div>
+
+  <div class="container">
+    <header>
+      <h1>🥛 몽실몽실 급식 우유 타임 🐮</h1>
+      <p class="subtitle">시원한 우유 먹고 다 함께 키가 쑥쑥!</p>
+    </header>
+
+    <!-- 남은 시간 타이머 디스플레이 -->
+    <div class="timer-card">
+      <div class="status-badge" id="statusBadge">준비 시간</div>
+      <div class="timer-display" id="timerDisplay">03:00</div>
+      <p id="gameInstruction" style="font-size: 1.2rem; color: #666;">아래 게임 버튼을 눌러 우유 마시기를 시작해보세요!</p>
+    </div>
+
+    <!-- 게임 시작 버튼 그룹 -->
+    <div class="game-buttons">
+      <button class="cloud-btn" onclick="startGame(180, '⏱️ 기본 3분 챌린지')">
+        ⏱️ 3분 기본 타임
+      </button>
+      <button class="cloud-btn pink" onclick="startSpeedGame()">
+        ⚡ 스피드 우유왕 (1분)
+      </button>
+      <button class="cloud-btn yellow" onclick="startMusicGame()">
+        🎵 BGM 맞춰 다같이 원샷
+      </button>
+      <button class="cloud-btn green" onclick="resetTimer()">
+        🔄 리셋
+      </button>
+    </div>
+
+    <!-- 우유 먹기 체크리스트 -->
+    <section class="checklist-section">
+      <div class="checklist-header">
+        <div class="checklist-title">
+          <span>📋 우리 반 우유 체크리스트</span>
+          <span id="checkCount" style="font-size: 1.2rem; color: var(--pink-color);">(0/20명 완료)</span>
+        </div>
+        <button class="cloud-btn green" style="padding: 8px 15px; font-size: 1rem;" onclick="resetChecklist()">전체 리셋</button>
+      </div>
+
+      <!-- 진행률 바 -->
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <!-- 학생 카드 그리드 -->
+      <div class="student-grid" id="studentGrid">
+        <!-- JS로 동적 생성됨 -->
+      </div>
+    </section>
+  </div>
+
+  <!-- 오디오 컨트롤러 (배경 음악) -->
+  <div class="audio-control">
+    <span>🎵 배경음악</span>
+    <button id="bgmToggleBtn" class="cloud-btn" style="padding: 5px 12px; font-size: 0.9rem;" onclick="toggleBGM()"> 재생</button>
+  </div>
+
+  <!-- HTML5 Audio 태그 사용 (무료 로열티 프리 경쾌한 BGM 및 효과음) -->
+  <audio id="bgm" loop preload="auto">
+    <source src="https://actions.google.com/sounds/v1/ambiences/carnival_atmosphere.ogg" type="audio/ogg">
+    <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=happy-ukulele-112181.mp3" type="audio/mpeg">
+  </audio>
+
+  <audio id="finishSound" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/cartoon/clown_horn.ogg" type="audio/ogg">
+  </audio>
+
+  <script>
+    // 전역 변수
+    let timerInterval = null;
+    let timeLeft = 180; // 기본 3분 (180초)
+    let totalStudents = 20; // 기본 학생 수
+    let isPlayingBGM = false;
+
+    // DOM 요소
+    const timerDisplay = document.getElementById('timerDisplay');
+    const statusBadge = document.getElementById('statusBadge');
+    const gameInstruction = document.getElementById('gameInstruction');
+    const bgm = document.getElementById('bgm');
+    const finishSound = document.getElementById('finishSound');
+    const bgmToggleBtn = document.getElementById('bgmToggleBtn');
+    const studentGrid = document.getElementById('studentGrid');
+    const progressBar = document.getElementById('progressBar');
+    const checkCount = document.getElementById('checkCount');
+
+    // 초기화 함수
+    window.onload = () => {
+      renderChecklist();
+      updateTimerDisplay(timeLeft);
+    };
+
+    // 시간 포맷 변경 (MM:SS)
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimerDisplay(seconds) {
+      timerDisplay.textContent = formatTime(seconds);
+    }
+
+    // 타이머 시작
+    function startGame(duration, title) {
+      clearInterval(timerInterval);
+      timeLeft = duration;
+      statusBadge.textContent = title;
+      gameInstruction.textContent = "우유를 흘리지 않고 빨대로 차근차근 다 마셔보세요!";
+      updateTimerDisplay(timeLeft);
+      playBGM();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay(timeLeft);
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          finishGame();
+        }
+      }, 1000);
+    }
+
+    // 스피드 게임 (1분)
+    function startSpeedGame() {
+      startGame(60, "⚡ 1분 스피드 우유왕");
+      gameInstruction.textContent = "집중! 1분 동안 빠르고 깨끗하게 우유 마시기!";
+    }
+
+    // BGM 맞춤 원샷 (90초)
+    function startMusicGame() {
+      startGame(90, "🎵 음악이 끝날 때까지 원샷!");
+      gameInstruction.textContent = "신나는 음악을 들으며 끝까지 맛을 음미해요!";
+    }
+
+    // 게임 종료 처리
+    function finishGame() {
+      statusBadge.textContent = "🎉 성공! 우유 마시기 완료!";
+      gameInstruction.textContent = "모두 깨끗하게 잘 마셨나요? 체크리스트를 확인해보세요!";
+      stopBGM();
+      try {
+        finishSound.play();
+      } catch (e) {
+        console.log("Audio play blocked");
+      }
+      alert("🥛 축하합니다! 급식 우유 마시기 시간이 끝났습니다!");
+    }
+
+    // 타이머 리셋
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 180;
+      updateTimerDisplay(timeLeft);
+      statusBadge.textContent = "준비 시간";
+      gameInstruction.textContent = "아래 게임 버튼을 눌러 우유 마시기를 시작해보세요!";
+      stopBGM();
+    }
+
+    // BGM 제어 함수
+    function playBGM() {
+      bgm.play().then(() => {
+        isPlayingBGM = true;
+        bgmToggleBtn.textContent = "⏸️ 일시정지";
+      }).catch(e => {
+        console.log("BGM 자동 재생 차단됨 (사용자 상호작용 필요)");
+      });
+    }
+
+    function stopBGM() {
+      bgm.pause();
+      isPlayingBGM = false;
+      bgmToggleBtn.textContent = "▶️ 재생";
+    }
+
+    function toggleBGM() {
+      if (isPlayingBGM) {
+        stopBGM();
+      } else {
+        playBGM();
+      }
+    }
+
+    // 체크리스트 생성 및 관리
+    function renderChecklist() {
+      studentGrid.innerHTML = '';
+      for (let i = 1; i <= totalStudents; i++) {
+        const card = document.createElement('div');
+        card.className = 'student-card';
+        card.onclick = () => toggleCheck(card);
+        card.innerHTML = `
+          <span class="icon">🥛</span>
+          <span class="name">${i}번 학생</span>
+        `;
+        studentGrid.appendChild(card);
+      }
+      updateProgress();
+    }
+
+    function toggleCheck(card) {
+      card.classList.toggle('checked');
+      const icon = card.querySelector('.icon');
+      if (card.classList.contains('checked')) {
+        icon.textContent = '✅';
+      } else {
+        icon.textContent = '🥛';
+      }
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const checkedCards = document.querySelectorAll('.student-card.checked').length;
+      const percentage = (checkedCards / totalStudents) * 100;
+      progressBar.style.width = `${percentage}%`;
+      checkCount.textContent = `(${checkedCards}/${totalStudents}명 완료)`;
+    }
+
+    function resetChecklist() {
+      const cards = document.querySelectorAll('.student-card');
+      cards.forEach(card => {
+        card.classList.remove('checked');
+        card.querySelector('.icon').textContent = '🥛';
+      });
+      updateProgress();
+    }
+  </script>
+</body>
+</html>
