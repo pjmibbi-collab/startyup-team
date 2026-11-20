@@ -74,8 +74,8 @@
             </p>
             <ul class="text-xs text-slate-600 bg-slate-50 rounded-xl p-4 space-y-2 mb-6 border border-slate-100">
               <li>✅ 클릭 즉시 4자리 숫자 방 코드(예: 3842) 자동 생성</li>
-              <li>✅ 모든 학생/팀장 iPad의 화면 단계 실시간 제어</li>
-              <li>✅ 샘플 데이터 자동 채우기, 수정/되돌리기 및 CSV 다운로드</li>
+              <li>✅ 역량 매칭 + 남녀 성비 균형 자동 검증 시스템</li>
+              <li>✅ 팀원 개별 제외(삭제), 되돌리기 및 최종 일괄 공개</li>
             </ul>
           </div>
           <button id="btn-create-room" onclick="createRoom()" class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
@@ -135,7 +135,7 @@
       </div>
     </section>
 
-    <!-- 2. 실제 수업 진행 화면 (선생님 / 팀장 / 학생 공통 컨테이너) -->
+    <!-- 2. 실제 수업 진행 화면 -->
     <section id="view-classroom" class="hidden space-y-5">
 
       <!-- 단계 표시 바 -->
@@ -167,7 +167,12 @@
             <button onclick="fillSampleData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold">🧪 연습용 샘플 데이터 채우기</button>
             <button onclick="resetRoomData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900 text-rose-300 font-semibold">🔄 전체 초기화</button>
           </div>
-          <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold">📥 최종 팀 편성표 엑셀(CSV) 다운로드</button>
+          <div class="flex flex-wrap gap-2">
+            <button id="btn-toggle-reveal" onclick="toggleRevealResults()" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-sm transition">
+              📢 최종 팀 배정 결과 전체 공개
+            </button>
+            <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold">📥 엑셀(CSV) 다운로드</button>
+          </div>
         </div>
       </div>
 
@@ -177,7 +182,7 @@
           <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div>
               <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">1단계: 팀장별 필요 역량 4가지 선택 (블라인드)</h2>
-              <p class="text-xs sm:text-sm text-slate-500">우리 창업 아이템 성공을 위해 팀원들에게 꼭 필요한 역량 <strong>4가지</strong>를 고르세요. (다른 팀에는 공개되지 않습니다)</p>
+              <p class="text-xs sm:text-sm text-slate-500">팀장 본인의 이름·성별과 우리 팀에 꼭 필요한 역량 <strong>4가지</strong>를 고르세요. (다른 팀에는 공개되지 않습니다)</p>
             </div>
             <span id="leader-submit-count" class="text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700">0 / 6팀 완료</span>
           </div>
@@ -198,21 +203,22 @@
         </div>
       </div>
 
-      <!-- STEP 3: 일반 학생 지원 (이름 + 보유 역량 2가지) -->
+      <!-- STEP 3: 일반 학생 지원 (이름 + 성별 + 보유 역량 2가지) -->
       <div id="step-content-3" class="hidden space-y-5">
         <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div>
               <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">3단계: 지원자(학생) 본인 역량 2가지 등록</h2>
-              <p class="text-xs sm:text-sm text-slate-500">본인의 이름과 가장 자신 있는 핵심 역량 <strong>2가지</strong>를 선택해 제출하세요.</p>
+              <p class="text-xs sm:text-sm text-slate-500">본인의 이름, 성별과 가장 자신 있는 핵심 역량 <strong>2가지</strong>를 선택해 제출하세요.</p>
             </div>
             <span id="student-submit-count" class="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700">현재 0명 등록됨</span>
           </div>
 
           <div id="student-input-area" class="mb-6"></div>
 
-          <div class="border-t border-slate-100 pt-5">
-            <h3 class="text-sm font-bold text-slate-700 mb-3">📋 드래프트 대기 명단 (실시간)</h3>
+          <!-- 교사/팀장에게만 보이는 등록 현황판 (학생에게는 비공개) -->
+          <div id="registered-students-wrapper" class="hidden border-t border-slate-100 pt-5">
+            <h3 class="text-sm font-bold text-slate-700 mb-3">📋 드래프트 대기 명단 (선생님/팀장 전용 실시간 현황)</h3>
             <div id="registered-students-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
           </div>
         </div>
@@ -220,30 +226,52 @@
 
       <!-- STEP 4: 블라인드 드래프트 진행 및 최종 편성 -->
       <div id="step-content-4" class="hidden space-y-5">
-        <div id="draft-turn-banner" class="bg-indigo-600 text-white rounded-2xl p-5 shadow-md flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p class="text-xs font-bold text-indigo-200 uppercase">Live Draft Turn</p>
-            <h2 id="draft-turn-title" class="text-xl sm:text-2xl font-extrabold mt-0.5">1라운드 · 1팀 팀장 차례입니다!</h2>
-            <p id="draft-turn-desc" class="text-xs sm:text-sm text-indigo-100 mt-1">아래 지원자 카드 중 우리 팀에 영입할 학생을 터치하세요.</p>
-          </div>
-          <div id="draft-teacher-actions" class="hidden flex gap-2">
-            <button onclick="skipDraftTurn()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">⏭️ 이번 차례 건너뛰기</button>
-            <button onclick="undoLastPick()" class="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition">↩️ 직전 지명 취소</button>
-          </div>
+        <!-- 일반 학생용 블라인드 대기 화면 (결과 공개 전까지 표시) -->
+        <div id="student-blind-wait-box" class="hidden bg-white rounded-2xl border-2 border-indigo-100 p-8 sm:p-12 text-center shadow-sm space-y-4">
+          <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl mx-auto">🔒</div>
+          <span class="inline-block text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full">블라인드 매칭 진행 중</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">각 팀의 팀장들이 역량 기반 팀 빌딩을 진행하고 있습니다</h2>
+          <p class="text-sm sm:text-base text-slate-600 max-w-lg mx-auto leading-relaxed">
+            모든 학생이 공정하고 편안하게 결과를 확인할 수 있도록 선발 과정은 블라인드로 진행됩니다.<br/>
+            선생님이 <strong>최종 팀 배정 결과</strong>를 공개할 때까지 잠시만 기다려 주세요!
+          </p>
         </div>
 
-        <div class="grid lg:grid-cols-12 gap-5">
-          <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="font-extrabold text-slate-900 text-base">🙋 영입 가능한 지원자 목록 (<span id="available-count">0</span>명)</h3>
-              <span class="text-xs text-slate-500">역량 태그를 보고 영입하세요</span>
+        <!-- 교사/팀장 진행 화면 또는 최종 결과 전체 공개 화면 -->
+        <div id="draft-active-workspace" class="space-y-5">
+          <!-- 현재 턴 안내 배너 -->
+          <div id="draft-turn-banner" class="bg-indigo-600 text-white rounded-2xl p-5 shadow-md flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold text-indigo-200 uppercase">Live Blind Draft</p>
+              <h2 id="draft-turn-title" class="text-xl sm:text-2xl font-extrabold mt-0.5">1라운드 · 1팀 팀장 차례입니다!</h2>
+              <p id="draft-turn-desc" class="text-xs sm:text-sm text-indigo-100 mt-1">우리 팀이 1단계에서 선택한 필요 역량을 가진 지원자만 영입할 수 있습니다.</p>
             </div>
-            <div id="draft-pool-grid" class="grid sm:grid-cols-2 gap-3"></div>
+            <div id="draft-teacher-actions" class="hidden flex flex-wrap gap-2">
+              <button onclick="skipDraftTurn()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">⏭️ 이번 차례 건너뛰기</button>
+              <button onclick="undoLastPick()" class="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition">↩️ 직전 지명 취소</button>
+            </div>
           </div>
 
-          <div class="lg:col-span-5 space-y-3">
-            <h3 class="font-extrabold text-slate-900 text-base px-1">🏆 6개 창업팀 실시간 로스터</h3>
-            <div id="teams-roster-list" class="space-y-3"></div>
+          <div id="draft-main-grid" class="grid lg:grid-cols-12 gap-5">
+            <!-- 왼쪽: 미지명 학생 풀 (공개 완료 시 숨김) -->
+            <div id="draft-pool-panel" class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="font-extrabold text-slate-900 text-base">🙋 영입 가능한 지원자 목록 (<span id="available-count">0</span>명)</h3>
+                <span id="draft-rule-badge" class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">필요 역량 일치 + 남녀 균형 규칙 적용</span>
+              </div>
+              <!-- 예외 상황(역량 소진 / 성비 제한) 동적 안내 알림 -->
+              <div id="draft-status-notice" class="hidden p-3 rounded-xl text-xs font-bold"></div>
+              <div id="draft-pool-grid" class="grid sm:grid-cols-2 gap-3"></div>
+            </div>
+
+            <!-- 오른쪽(또는 전체): 팀 로스터 현황판 -->
+            <div id="teams-roster-panel" class="lg:col-span-5 space-y-3">
+              <div class="flex items-center justify-between px-1">
+                <h3 id="roster-panel-title" class="font-extrabold text-slate-900 text-base">🏆 팀별 실시간 로스터</h3>
+                <span id="roster-privacy-note" class="text-xs text-slate-500"></span>
+              </div>
+              <div id="teams-roster-list" class="space-y-3"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -266,8 +294,7 @@
     };
 
     const COMPETENCY_TAGS = [
-      "아이디어", "제작능력", "홍보능력", "칭찬능력", "디자인감각",
-      "발표/피칭", "자료조사", "일정관리", "재무/계산", "소통/중재", "문제해결"
+      "제작력", "홍보력", "아이디어뱅크", "일정/계획", "재무/계산", "소통/중재", "영업력"
     ];
 
     const TEAM_COLORS = [
@@ -288,8 +315,10 @@
 
     let tempLeaderTags = [];
     let tempLeaderName = "";
+    let tempLeaderGender = ""; // 'M' | 'F'
     let tempStudentTags = [];
     let tempStudentName = "";
+    let tempStudentGender = ""; // 'M' | 'F'
     let myStudentId = localStorage.getItem("startup_my_student_id") || null;
 
     function initFirebase() {
@@ -310,10 +339,12 @@
       return {
         roomCode: code,
         step: 1,
+        resultsRevealed: false,
         teams: Array.from({ length: 6 }, (_, i) => ({
           id: i,
           name: `${i + 1}팀`,
           leaderName: "",
+          leaderGender: "",
           wantedTags: [],
           members: []
         })),
@@ -376,11 +407,13 @@
       if (role === "leader") {
         const team = roomData.teams[teamIdx];
         tempLeaderName = team.leaderName || "";
+        tempLeaderGender = team.leaderGender || "";
         tempLeaderTags = [...(team.wantedTags || [])];
       } else if (role === "student" && myStudentId) {
         const existing = (roomData.students || []).find(s => s.id === myStudentId);
         if (existing) {
           tempStudentName = existing.name;
+          tempStudentGender = existing.gender || "";
           tempStudentTags = [...existing.tags];
         }
       }
@@ -434,6 +467,12 @@
       document.getElementById(viewId).classList.remove("hidden");
     }
 
+    function genderLabel(g) {
+      if (g === "M") return "남";
+      if (g === "F") return "여";
+      return "";
+    }
+
     function renderClassroom() {
       if (!roomData) return;
       const step = roomData.step || 1;
@@ -450,7 +489,19 @@
         document.getElementById(`step-content-${s}`).classList.toggle("hidden", s !== step);
       }
 
-      document.getElementById("teacher-control-panel").classList.toggle("hidden", currentRole !== "teacher");
+      const isTeacher = currentRole === "teacher";
+      document.getElementById("teacher-control-panel").classList.toggle("hidden", !isTeacher);
+
+      if (isTeacher) {
+        const revealBtn = document.getElementById("btn-toggle-reveal");
+        if (roomData.resultsRevealed) {
+          revealBtn.textContent = "🔒 최종 결과 다시 숨기기 (블라인드)";
+          revealBtn.className = "px-3.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-amber-300 font-extrabold transition";
+        } else {
+          revealBtn.textContent = "📢 최종 팀 배정 결과 전체 공개";
+          revealBtn.className = "px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-sm transition";
+        }
+      }
 
       if (step === 1) renderStep1();
       if (step === 2) renderStep2();
@@ -481,10 +532,11 @@
             ${roomData.teams.map((team, idx) => {
               const color = TEAM_COLORS[idx];
               const isDone = team.wantedTags && team.wantedTags.length === 4;
+              const gText = team.leaderGender ? `·${genderLabel(team.leaderGender)}` : "";
               return `
                 <div class="rounded-xl border-2 ${isDone ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200 bg-white'} p-4">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="font-extrabold ${color.text}">${idx + 1}팀 ${team.leaderName ? `(${team.leaderName})` : ''}</span>
+                    <span class="font-extrabold ${color.text}">${idx + 1}팀 ${team.leaderName ? `(${team.leaderName}${gText})` : ''}</span>
                     <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                       ${isDone ? '✅ 입력 완료' : '입력 대기 중'}
                     </span>
@@ -513,11 +565,26 @@
               선택됨: ${tempLeaderTags.length} / 4개
             </span>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">팀장 이름</label>
-            <input id="leader-name-input" type="text" value="${tempLeaderName}" placeholder="예: 김민준"
-              oninput="tempLeaderName = this.value"
-              class="w-full sm:w-64 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold focus:outline-none focus:border-indigo-500" />
+          <div class="flex flex-wrap items-end gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">팀장 이름</label>
+              <input id="leader-name-input" type="text" value="${tempLeaderName}" placeholder="예: 김민준"
+                oninput="tempLeaderName = this.value"
+                class="w-48 sm:w-60 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">성별 (팀 남녀 균형용)</label>
+              <div class="flex gap-2">
+                <button type="button" onclick="tempLeaderGender = 'M'; renderStep1();"
+                  class="px-4 py-2 rounded-xl text-sm font-bold border ${tempLeaderGender === 'M' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white text-slate-700 border-slate-300'}">
+                  남학생
+                </button>
+                <button type="button" onclick="tempLeaderGender = 'F'; renderStep1();"
+                  class="px-4 py-2 rounded-xl text-sm font-bold border ${tempLeaderGender === 'F' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-slate-700 border-slate-300'}">
+                  여학생
+                </button>
+              </div>
+            </div>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-2">우리 팀에 꼭 필요한 역량 4가지를 터치하세요</label>
@@ -559,12 +626,14 @@
 
     async function submitLeaderTags() {
       if (!tempLeaderName.trim()) return alert("팀장 이름을 입력해 주세요.");
+      if (!tempLeaderGender) return alert("팀장 성별(남학생/여학생)을 선택해 주세요.");
       if (tempLeaderTags.length !== 4) return alert("필요한 역량 4가지를 모두 선택해 주세요.");
 
       const updatedTeams = [...roomData.teams];
       updatedTeams[currentTeamIndex] = {
         ...updatedTeams[currentTeamIndex],
         leaderName: tempLeaderName.trim(),
+        leaderGender: tempLeaderGender,
         wantedTags: [...tempLeaderTags]
       };
       await db.collection("rooms").doc(currentRoomCode).update({ teams: updatedTeams });
@@ -614,18 +683,38 @@
       document.getElementById("student-submit-count").textContent = `현재 ${students.length}명 등록됨`;
 
       const inputArea = document.getElementById("student-input-area");
+      const listWrapper = document.getElementById("registered-students-wrapper");
+
       if (currentRole === "student") {
+        listWrapper.classList.add("hidden");
+
+        const mySubmitted = myStudentId ? students.find(s => s.id === myStudentId) : null;
         inputArea.innerHTML = `
           <div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-5 space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="font-extrabold text-emerald-900 text-base">🙋 나의 강점 역량 2가지 등록하기</h3>
               <span class="text-xs font-bold px-3 py-1 rounded-full bg-white text-emerald-700 border border-emerald-200">선택됨: ${tempStudentTags.length} / 2개</span>
             </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">본인 이름 (학번+이름 권장)</label>
-              <input type="text" value="${tempStudentName}" placeholder="예: 10315 이서연"
-                oninput="tempStudentName = this.value"
-                class="w-full sm:w-72 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold focus:outline-none focus:border-emerald-500" />
+            <div class="flex flex-wrap items-end gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">본인 이름 (학번+이름 권장)</label>
+                <input type="text" value="${tempStudentName}" placeholder="예: 10315 이서연"
+                  oninput="tempStudentName = this.value"
+                  class="w-48 sm:w-64 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold focus:outline-none focus:border-emerald-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">성별 (팀 남녀 균형용)</label>
+                <div class="flex gap-2">
+                  <button type="button" onclick="tempStudentGender = 'M'; renderStep3();"
+                    class="px-4 py-2 rounded-xl text-sm font-bold border ${tempStudentGender === 'M' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white text-slate-700 border-slate-300'}">
+                    남학생
+                  </button>
+                  <button type="button" onclick="tempStudentGender = 'F'; renderStep3();"
+                    class="px-4 py-2 rounded-xl text-sm font-bold border ${tempStudentGender === 'F' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-slate-700 border-slate-300'}">
+                    여학생
+                  </button>
+                </div>
+              </div>
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-2">내가 팀에 기여할 수 있는 핵심 역량 2가지를 선택하세요</label>
@@ -645,28 +734,34 @@
                 }).join("")}
               </div>
             </div>
-            <button onclick="submitStudentProfile()" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition">
-              🚀 지원자 명단에 등록하기
-            </button>
+            <div class="flex flex-wrap items-center gap-3">
+              <button onclick="submitStudentProfile()" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition">
+                🚀 지원자 명단에 등록하기
+              </button>
+              ${mySubmitted ? `<span class="text-xs font-bold text-emerald-800 bg-white px-3 py-1.5 rounded-lg border border-emerald-200">✅ '${mySubmitted.name}' 등록 완료! (수정 후 재제출 가능)</span>` : ''}
+            </div>
           </div>
         `;
       } else {
         inputArea.innerHTML = `
           <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm text-slate-600">
-            💡 학생들이 각자의 iPad에서 본인의 이름과 2가지 강점 역량을 입력하면 아래 명단에 실시간으로 나타납니다.
+            💡 학생들이 각자의 iPad에서 본인의 이름, 성별과 2가지 강점 역량을 입력하면 아래 명단에 실시간으로 나타납니다. (학생 화면에는 친구 명단이 비공개 처리됩니다)
           </div>
         `;
-      }
-
-      const grid = document.getElementById("registered-students-grid");
-      grid.innerHTML = students.map(s => `
-        <div class="p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
-          <div class="font-bold text-slate-900 text-sm mb-1.5">${s.name}</div>
-          <div class="flex flex-wrap gap-1">
-            ${s.tags.map(t => `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">${t}</span>`).join("")}
+        listWrapper.classList.remove("hidden");
+        const grid = document.getElementById("registered-students-grid");
+        grid.innerHTML = students.map(s => `
+          <div class="p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-bold text-slate-900 text-sm">${s.name}</span>
+              ${s.gender ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${s.gender === 'M' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}">${genderLabel(s.gender)}</span>` : ''}
+            </div>
+            <div class="flex flex-wrap gap-1">
+              ${s.tags.map(t => `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">${t}</span>`).join("")}
+            </div>
           </div>
-        </div>
-      `).join("");
+        `).join("");
+      }
     }
 
     function toggleStudentTag(tag) {
@@ -681,6 +776,7 @@
 
     async function submitStudentProfile() {
       if (!tempStudentName.trim()) return alert("본인 이름을 입력해 주세요.");
+      if (!tempStudentGender) return alert("성별(남학생/여학생)을 선택해 주세요.");
       if (tempStudentTags.length !== 2) return alert("강점 역량 2가지를 모두 선택해 주세요.");
 
       const students = [...(roomData.students || [])];
@@ -693,6 +789,7 @@
       const record = {
         id: myStudentId,
         name: tempStudentName.trim(),
+        gender: tempStudentGender,
         tags: [...tempStudentTags],
         draftedBy: idx >= 0 ? students[idx].draftedBy : null
       };
@@ -701,66 +798,271 @@
       else students.push(record);
 
       await db.collection("rooms").doc(currentRoomCode).update({ students });
-      alert("지원자 명단에 등록되었습니다!");
+      alert("지원자 명단에 등록되었습니다! 선생님이 다음 단계로 넘어가실 때까지 잠시 기다려 주세요.");
     }
 
+    // ==========================================
+    // STEP 4: 역량 매칭 + 소진 시 자동 해제 + 남녀 편중 방지 로직
+    // ==========================================
     function getSnakeTeamIndex(turnIndex) {
       const round = Math.floor(turnIndex / 6);
       const pos = turnIndex % 6;
       return round % 2 === 0 ? pos : (5 - pos);
     }
 
+    // 1. 해당 지원자가 팀의 필요 역량 중 최소 1개를 가졌는지 확인
+    function hasMatchingCompetency(student, team) {
+      const wanted = team.wantedTags || [];
+      if (wanted.length === 0) return true;
+      return (student.tags || []).some(tag => wanted.includes(tag));
+    }
+
+    // 2. 성별 편중 방지 검사:
+    // 팀장 + 영입된 팀원이 모두 같은 성별인 상태에서 팀 총원이 3명 이상(즉, 팀원 2명 이상 영입 시점)이 되려 할 때,
+    // 반대 성별이 아직 1명도 없으면 같은 성별 영입을 제한 (단, 대기 풀에 반대 성별이 0명이면 제한 해제)
+    function checkGenderRule(student, team, currentMembers, availablePool) {
+      if (!student.gender || !team.leaderGender) return { allowed: true };
+
+      const gendersInTeam = [
+        team.leaderGender,
+        ...currentMembers.map(m => m.gender).filter(Boolean)
+      ];
+      const hasMale = gendersInTeam.includes("M");
+      const hasFemale = gendersInTeam.includes("F");
+
+      // 이미 남녀가 모두 섞여 있는 팀이라면 성별 제한 없음
+      if (hasMale && hasFemale) return { allowed: true };
+
+      // 현재까지 전원 한쪽 성별만 있는 상태일 때:
+      // 팀장 포함 3명째(즉, 이미 팀원 1명 이상 뽑혀서 총원 2명 이상인 상태)부터는 반드시 다른 성별을 뽑아야 함
+      const singleGender = hasMale ? "M" : "F";
+      const oppositeGender = singleGender === "M" ? "F" : "M";
+
+      if (gendersInTeam.length >= 2 && student.gender === singleGender) {
+        const oppositeAvailable = availablePool.some(s => s.gender === oppositeGender);
+        if (oppositeAvailable) {
+          return {
+            allowed: false,
+            reason: `성비 균형 필수 (${genderLabel(oppositeGender)}학생 필요)`
+          };
+        }
+      }
+      return { allowed: true };
+    }
+
+    // 현재 차례 팀을 기준으로 각 지원자의 영입 가능 여부와 상태 계산
+    function evaluateDraftEligibility(availablePool, activeTeamIdx) {
+      const activeTeam = roomData.teams[activeTeamIdx];
+      const allStudents = roomData.students || [];
+      const currentMembers = allStudents.filter(s => s.draftedBy === activeTeamIdx);
+
+      // 현재 팀의 필요 역량을 가진 지원자가 남아있는지 먼저 확인
+      const matchingPool = availablePool.filter(s => hasMatchingCompetency(s, activeTeam));
+      const isCompetencyFallback = matchingPool.length === 0 && availablePool.length > 0;
+
+      // 성별 제한이 발동 중인지 확인
+      const gendersInTeam = [
+        activeTeam.leaderGender,
+        ...currentMembers.map(m => m.gender).filter(Boolean)
+      ].filter(Boolean);
+      const isSingleGenderSoFar = gendersInTeam.length >= 2 && !(gendersInTeam.includes("M") && gendersInTeam.includes("F"));
+      const neededOppositeGender = isSingleGenderSoFar ? (gendersInTeam[0] === "M" ? "F" : "M") : null;
+      const hasOppositeInPool = neededOppositeGender ? availablePool.some(s => s.gender === neededOppositeGender) : false;
+
+      // 특수 예외: 역량 일치자와 성별 조건을 동시에 만족하는 학생이 0명인 경우 성별 조건을 우선 적용하고 역량 조건을 자동 완화
+      const strictBothPool = availablePool.filter(s => {
+        const compOk = isCompetencyFallback ? true : hasMatchingCompetency(s, activeTeam);
+        const genOk = checkGenderRule(s, activeTeam, currentMembers, availablePool).allowed;
+        return compOk && genOk;
+      });
+      const relaxCompetencyForGender = strictBothPool.length === 0 && availablePool.length > 0;
+
+      const evaluated = availablePool.map(stu => {
+        const compMatched = hasMatchingCompetency(stu, activeTeam);
+        const compAllowed = (isCompetencyFallback || relaxCompetencyForGender) ? true : compMatched;
+        const genderCheck = checkGenderRule(stu, activeTeam, currentMembers, availablePool);
+
+        const canPick = compAllowed && genderCheck.allowed;
+        let blockReason = "";
+        if (!genderCheck.allowed) blockReason = genderCheck.reason;
+        else if (!compAllowed) blockReason = "역량 불일치";
+
+        return {
+          student: stu,
+          compMatched,
+          canPick,
+          blockReason
+        };
+      });
+
+      return {
+        evaluated,
+        isCompetencyFallback: isCompetencyFallback || relaxCompetencyForGender,
+        isGenderRestricted: isSingleGenderSoFar && hasOppositeInPool,
+        neededOppositeGender
+      };
+    }
+
     function renderStep4() {
+      const isRevealed = Boolean(roomData.resultsRevealed);
+      const isStudent = currentRole === "student";
+      const isLeader = currentRole === "leader";
+      const isTeacher = currentRole === "teacher";
+
+      const waitBox = document.getElementById("student-blind-wait-box");
+      const workspace = document.getElementById("draft-active-workspace");
+
+      if (isStudent && !isRevealed) {
+        waitBox.classList.remove("hidden");
+        workspace.classList.add("hidden");
+        return;
+      }
+
+      waitBox.classList.add("hidden");
+      workspace.classList.remove("hidden");
+
       const students = roomData.students || [];
       const available = students.filter(s => s.draftedBy === null || s.draftedBy === undefined);
       const turnIdx = roomData.draftTurnIndex || 0;
       const activeTeamIdx = getSnakeTeamIndex(turnIdx);
       const roundNum = Math.floor(turnIdx / 6) + 1;
+      const activeTeam = roomData.teams[activeTeamIdx];
 
-      const isMyTurn = (currentRole === "leader" && currentTeamIndex === activeTeamIdx) || currentRole === "teacher";
+      const isMyTurn = (isLeader && currentTeamIndex === activeTeamIdx) || isTeacher;
 
-      document.getElementById("draft-turn-title").textContent = available.length > 0
-        ? `${roundNum}라운드 · ${activeTeamIdx + 1}팀 (${roomData.teams[activeTeamIdx].leaderName || '팀장'}) 지명 차례입니다!`
-        : "🎉 모든 지원자의 팀 배정이 완료되었습니다!";
-
-      document.getElementById("draft-turn-desc").textContent = available.length > 0
-        ? (isMyTurn ? "👉 지금 바로 아래 지원자 카드를 터치해 우리 팀으로 영입하세요!" : `${activeTeamIdx + 1}팀 팀장이 신중하게 팀원을 고르고 있습니다...`)
-        : "선생님 화면에서 최종 팀 편성표를 엑셀(CSV)로 다운로드할 수 있습니다.";
-
-      document.getElementById("draft-teacher-actions").classList.toggle("hidden", currentRole !== "teacher");
-      document.getElementById("available-count").textContent = available.length;
-
-      const poolGrid = document.getElementById("draft-pool-grid");
-      if (available.length === 0) {
-        poolGrid.innerHTML = `<div class="col-span-full py-10 text-center text-slate-400 text-sm">남은 지원자가 없습니다.</div>`;
+      const banner = document.getElementById("draft-turn-banner");
+      if (isRevealed) {
+        banner.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md flex flex-wrap items-center justify-between gap-4";
+        document.getElementById("draft-turn-title").textContent = "🎉 창업마켓 최종 팀 배정 결과가 공개되었습니다!";
+        document.getElementById("draft-turn-desc").textContent = "각 팀의 팀장과 팀원 구성을 확인하고 팀별로 모여 창업 아이디어를 구체화해 보세요!";
       } else {
-        poolGrid.innerHTML = available.map(stu => `
-          <div onclick="${isMyTurn ? `draftStudent('${stu.id}')` : ''}"
-            class="p-4 rounded-xl border-2 ${isMyTurn ? 'border-indigo-300 bg-indigo-50/30 hover:bg-indigo-100/60 cursor-pointer active-turn' : 'border-slate-200 bg-white'} transition flex items-center justify-between">
-            <div>
-              <div class="font-extrabold text-slate-900 text-base">${stu.name}</div>
-              <div class="flex flex-wrap gap-1.5 mt-1.5">
-                ${stu.tags.map(t => `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">${t}</span>`).join("")}
-              </div>
-            </div>
-            ${isMyTurn ? `<span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">영입</span>` : ''}
-          </div>
-        `).join("");
+        banner.className = "bg-indigo-600 text-white rounded-2xl p-5 shadow-md flex flex-wrap items-center justify-between gap-4";
+        document.getElementById("draft-turn-title").textContent = available.length > 0
+          ? `${roundNum}라운드 · ${activeTeamIdx + 1}팀 (${activeTeam.leaderName || '팀장'}) 지명 차례입니다!`
+          : "🎉 모든 지원자의 팀 배정이 완료되었습니다! 선생님 화면에서 결과를 공개해 주세요.";
+
+        document.getElementById("draft-turn-desc").textContent = available.length > 0
+          ? (isMyTurn
+              ? `👉 ${activeTeamIdx + 1}팀 필요 역량(${(activeTeam.wantedTags || []).join(", ")}) 및 남녀 균형 기준에 맞는 지원자를 선택하세요.`
+              : `${activeTeamIdx + 1}팀 팀장이 조건에 맞는 팀원을 고르고 있습니다...`)
+          : "교사 제어판의 [📢 최종 팀 배정 결과 전체 공개] 버튼을 누르면 모든 학생 화면에 팀 편성표가 공개됩니다.";
       }
 
+      document.getElementById("draft-teacher-actions").classList.toggle("hidden", !isTeacher);
+
+      const poolPanel = document.getElementById("draft-pool-panel");
+      const rosterPanel = document.getElementById("teams-roster-panel");
+
+      if (isRevealed || isStudent) {
+        poolPanel.classList.add("hidden");
+        rosterPanel.className = "lg:col-span-12 space-y-3";
+      } else {
+        poolPanel.classList.remove("hidden");
+        rosterPanel.className = "lg:col-span-5 space-y-3";
+        document.getElementById("available-count").textContent = available.length;
+
+        const {
+          evaluated,
+          isCompetencyFallback,
+          isGenderRestricted,
+          neededOppositeGender
+        } = evaluateDraftEligibility(available, activeTeamIdx);
+
+        // 동적 예외 안내 알림 배너
+        const noticeBox = document.getElementById("draft-status-notice");
+        const notices = [];
+        if (available.length > 0 && isCompetencyFallback) {
+          notices.push(`🔓 현재 ${activeTeamIdx + 1}팀의 필요 역량을 가진 지원자가 모두 소진되어, 남은 전체 지원자 중에서 자유롭게 선택할 수 있습니다.`);
+        }
+        if (available.length > 0 && isGenderRestricted) {
+          notices.push(`⚖️ 성별 편중 방지 규칙 작동 중: 현재 팀 구성원이 모두 같은 성별이므로 이번에는 반드시 '${genderLabel(neededOppositeGender)}학생'을 영입해야 합니다.`);
+        }
+
+        if (notices.length > 0) {
+          noticeBox.classList.remove("hidden");
+          noticeBox.className = "p-3 rounded-xl text-xs font-bold bg-amber-50 border border-amber-200 text-amber-900 space-y-1";
+          noticeBox.innerHTML = notices.map(msg => `<div>${msg}</div>`).join("");
+        } else {
+          noticeBox.classList.add("hidden");
+        }
+
+        const poolGrid = document.getElementById("draft-pool-grid");
+        if (available.length === 0) {
+          poolGrid.innerHTML = `<div class="col-span-full py-10 text-center text-slate-400 text-sm">남은 지원자가 없습니다.</div>`;
+        } else {
+          poolGrid.innerHTML = evaluated.map(({ student: stu, canPick, blockReason }) => {
+            const interactive = isMyTurn && (canPick || isTeacher);
+            return `
+              <div onclick="${interactive ? `draftStudent('${stu.id}')` : ''}"
+                class="p-4 rounded-xl border-2 ${
+                  interactive
+                    ? 'border-indigo-300 bg-indigo-50/40 hover:bg-indigo-100/70 cursor-pointer active-turn'
+                    : 'border-slate-200 bg-slate-50/70 opacity-60'
+                } transition flex items-center justify-between gap-2">
+                <div>
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="font-extrabold text-slate-900 text-base">${stu.name}</span>
+                    ${stu.gender ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${stu.gender === 'M' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}">${genderLabel(stu.gender)}</span>` : ''}
+                    ${blockReason ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">${blockReason}</span>` : ''}
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-1.5">
+                    ${stu.tags.map(t => {
+                      const isTagWanted = (activeTeam.wantedTags || []).includes(t);
+                      return `<span class="text-xs font-bold px-2 py-0.5 rounded-md border ${
+                        isTagWanted
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-slate-600 border-slate-200'
+                      }">${t}</span>`;
+                    }).join("")}
+                  </div>
+                </div>
+                ${interactive ? `<span class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">영입</span>` : ''}
+              </div>
+            `;
+          }).join("");
+        }
+      }
+
+      const teamsToRender = (isTeacher || isRevealed)
+        ? roomData.teams.map((t, idx) => ({ team: t, idx }))
+        : [{ team: roomData.teams[currentTeamIndex], idx: currentTeamIndex }];
+
+      document.getElementById("roster-panel-title").textContent = (isTeacher || isRevealed)
+        ? "🏆 6개 창업팀 최종 편성 현황"
+        : `🏆 우리 팀(${currentTeamIndex + 1}팀) 실시간 로스터`;
+
+      document.getElementById("roster-privacy-note").textContent = (!isTeacher && !isRevealed)
+        ? "🔒 타 팀 선발 현황은 결과 공개 전까지 비공개됩니다"
+        : "";
+
       const rosterList = document.getElementById("teams-roster-list");
-      rosterList.innerHTML = roomData.teams.map((team, idx) => {
+      rosterList.className = (isTeacher || isRevealed)
+        ? "grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+        : "space-y-3";
+
+      rosterList.innerHTML = teamsToRender.map(({ team, idx }) => {
         const color = TEAM_COLORS[idx];
-        const isTurn = available.length > 0 && idx === activeTeamIdx;
+        const isTurn = !isRevealed && available.length > 0 && idx === activeTeamIdx;
         const teamMembers = students.filter(s => s.draftedBy === idx);
+
+        // 팀 내 남/여 인원 집계 (팀장 포함)
+        const allTeamPeople = [
+          { gender: team.leaderGender },
+          ...teamMembers
+        ];
+        const mCount = allTeamPeople.filter(p => p.gender === "M").length;
+        const fCount = allTeamPeople.filter(p => p.gender === "F").length;
+
         return `
-          <div class="p-4 rounded-2xl border-2 ${isTurn ? 'border-indigo-600 ring-2 ring-indigo-200' : color.border} bg-white">
+          <div class="p-4 rounded-2xl border-2 ${isTurn ? 'border-indigo-600 ring-2 ring-indigo-200' : color.border} bg-white shadow-xs">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
                 <span class="px-2.5 py-0.5 rounded-lg ${color.badge} text-white text-xs font-extrabold">${idx + 1}팀</span>
-                <span class="font-bold text-slate-900 text-sm">팀장: ${team.leaderName || '미정'}</span>
+                <span class="font-bold text-slate-900 text-sm">
+                  팀장: ${team.leaderName || '미정'}${team.leaderGender ? `(${genderLabel(team.leaderGender)})` : ''}
+                </span>
               </div>
-              <span class="text-xs font-bold text-slate-500">팀원 ${teamMembers.length}명</span>
+              <span class="text-xs font-bold text-slate-500">남 ${mCount} · 여 ${fCount}</span>
             </div>
             <div class="flex flex-wrap gap-1 mb-2.5">
               ${(team.wantedTags || []).map(t => `<span class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">#${t}</span>`).join("")}
@@ -769,9 +1071,17 @@
               ${teamMembers.length === 0
                 ? `<p class="text-xs text-slate-400">아직 영입된 팀원이 없습니다</p>`
                 : teamMembers.map(m => `
-                  <div class="flex items-center justify-between text-xs bg-slate-50 px-2.5 py-1.5 rounded-lg">
-                    <span class="font-bold text-slate-800">${m.name}</span>
-                    <span class="text-slate-500">${m.tags.join(" · ")}</span>
+                  <div class="flex items-center justify-between text-xs bg-slate-50 px-2.5 py-1.5 rounded-lg gap-2">
+                    <div>
+                      <span class="font-bold text-slate-800">${m.name}${m.gender ? `(${genderLabel(m.gender)})` : ''}</span>
+                      <span class="text-slate-500 ml-1.5">${m.tags.join(" · ")}</span>
+                    </div>
+                    ${isTeacher ? `
+                      <button onclick="removeMemberByTeacher('${m.id}')" title="교사 권한으로 팀 배정 제외"
+                        class="shrink-0 px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px] transition">
+                        ✕ 제외
+                      </button>
+                    ` : ''}
                   </div>
                 `).join("")
               }
@@ -784,12 +1094,21 @@
     async function draftStudent(studentId) {
       const turnIdx = roomData.draftTurnIndex || 0;
       const activeTeamIdx = getSnakeTeamIndex(turnIdx);
+      const studentsAll = roomData.students || [];
+      const available = studentsAll.filter(s => s.draftedBy === null || s.draftedBy === undefined);
 
-      if (currentRole === "leader" && currentTeamIndex !== activeTeamIdx) {
-        return alert("지금은 우리 팀 지명 차례가 아닙니다.");
+      if (currentRole === "leader") {
+        if (currentTeamIndex !== activeTeamIdx) {
+          return alert("지금은 우리 팀 지명 차례가 아닙니다.");
+        }
+        const { evaluated } = evaluateDraftEligibility(available, activeTeamIdx);
+        const found = evaluated.find(e => e.student.id === studentId);
+        if (found && !found.canPick) {
+          return alert(`영입할 수 없는 지원자입니다: ${found.blockReason}`);
+        }
       }
 
-      const students = roomData.students.map(s =>
+      const students = studentsAll.map(s =>
         s.id === studentId ? { ...s, draftedBy: activeTeamIdx } : s
       );
       const history = [...(roomData.draftHistory || []), { turnIdx, teamIdx: activeTeamIdx, studentId }];
@@ -798,6 +1117,34 @@
         students,
         draftTurnIndex: turnIdx + 1,
         draftHistory: history
+      });
+    }
+
+    async function removeMemberByTeacher(studentId) {
+      const target = (roomData.students || []).find(s => s.id === studentId);
+      if (!target) return;
+      if (!confirm(`[교사 권한] '${target.name}' 학생을 현재 팀에서 제외하고 대기 명단으로 되돌리시겠습니까?`)) return;
+
+      const students = roomData.students.map(s =>
+        s.id === studentId ? { ...s, draftedBy: null } : s
+      );
+      const history = (roomData.draftHistory || []).filter(h => h.studentId !== studentId);
+
+      await db.collection("rooms").doc(currentRoomCode).update({
+        students,
+        draftHistory: history
+      });
+    }
+
+    async function toggleRevealResults() {
+      const nextState = !Boolean(roomData.resultsRevealed);
+      const msg = nextState
+        ? "모든 학생과 팀장의 아이패드 화면에 최종 팀 배정 결과를 공개하시겠습니까?"
+        : "최종 팀 배정 결과를 다시 블라인드(숨김) 상태로 전환하시겠습니까?";
+      if (!confirm(msg)) return;
+
+      await db.collection("rooms").doc(currentRoomCode).update({
+        resultsRevealed: nextState
       });
     }
 
@@ -827,28 +1174,45 @@
     }
 
     async function fillSampleData() {
-      if (!confirm("연습용 샘플 데이터(팀장 6명 + 학생 24명)를 채우시겠습니까?")) return;
-      const sampleLeaders = ["김도윤", "이서준", "박하은", "최지우", "정시우", "강예린"];
+      if (!confirm("연습용 샘플 데이터(팀장 6명 + 학생 24명, 남녀 포함)를 채우시겠습니까?")) return;
+      const sampleLeaders = [
+        { name: "김도윤", gender: "M" },
+        { name: "이서준", gender: "M" },
+        { name: "박하은", gender: "F" },
+        { name: "최지우", gender: "F" },
+        { name: "정시우", gender: "M" },
+        { name: "강예린", gender: "F" }
+      ];
       const teams = roomData.teams.map((t, idx) => {
         const shuffled = [...COMPETENCY_TAGS].sort(() => 0.5 - Math.random());
         return {
           ...t,
-          leaderName: sampleLeaders[idx],
+          leaderName: sampleLeaders[idx].name,
+          leaderGender: sampleLeaders[idx].gender,
           wantedTags: shuffled.slice(0, 4)
         };
       });
 
-      const sampleNames = [
-        "강민서", "고은우", "권서아", "김건우", "김다은", "김민재",
-        "김서현", "김유진", "남지호", "문채원", "박서진", "박수빈",
-        "배준서", "서지민", "송현우", "신유나", "안재현", "양소율",
-        "오승민", "윤아린", "이준혁", "임하윤", "장우진", "한지안"
+      const sampleStudents = [
+        { name: "강민서", gender: "F" }, { name: "고은우", gender: "M" },
+        { name: "권서아", gender: "F" }, { name: "김건우", gender: "M" },
+        { name: "김다은", gender: "F" }, { name: "김민재", gender: "M" },
+        { name: "김서현", gender: "F" }, { name: "김유진", gender: "F" },
+        { name: "남지호", gender: "M" }, { name: "문채원", gender: "F" },
+        { name: "박서진", gender: "M" }, { name: "박수빈", gender: "F" },
+        { name: "배준서", gender: "M" }, { name: "서지민", gender: "F" },
+        { name: "송현우", gender: "M" }, { name: "신유나", gender: "F" },
+        { name: "안재현", gender: "M" }, { name: "양소율", gender: "F" },
+        { name: "오승민", gender: "M" }, { name: "윤아린", gender: "F" },
+        { name: "이준혁", gender: "M" }, { name: "임하윤", gender: "F" },
+        { name: "장우진", gender: "M" }, { name: "한지안", gender: "F" }
       ];
-      const students = sampleNames.map((name, i) => {
+      const students = sampleStudents.map((item, i) => {
         const shuffled = [...COMPETENCY_TAGS].sort(() => 0.5 - Math.random());
         return {
           id: "sample_" + i,
-          name,
+          name: item.name,
+          gender: item.gender,
           tags: shuffled.slice(0, 2),
           draftedBy: null
         };
@@ -857,6 +1221,7 @@
       await db.collection("rooms").doc(currentRoomCode).update({
         teams,
         students,
+        resultsRevealed: false,
         draftTurnIndex: 0,
         draftHistory: []
       });
@@ -869,12 +1234,12 @@
 
     function exportCSV() {
       const students = roomData.students || [];
-      let csv = "\uFEFF팀번호,역할,이름,보유/희망역량\n";
+      let csv = "\uFEFF팀번호,역할,이름,성별,보유/희망역량\n";
       roomData.teams.forEach((team, idx) => {
-        csv += `${idx + 1}팀,팀장,${team.leaderName || "미정"},"${(team.wantedTags || []).join(", ")}"\n`;
+        csv += `${idx + 1}팀,팀장,${team.leaderName || "미정"},${genderLabel(team.leaderGender)},"${(team.wantedTags || []).join(", ")}"\n`;
         const members = students.filter(s => s.draftedBy === idx);
         members.forEach(m => {
-          csv += `${idx + 1}팀,팀원,${m.name},"${m.tags.join(", ")}"\n`;
+          csv += `${idx + 1}팀,팀원,${m.name},${genderLabel(m.gender)},"${m.tags.join(", ")}"\n`;
         });
       });
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
