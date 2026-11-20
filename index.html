@@ -182,7 +182,6 @@
             <span id="leader-submit-count" class="text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700">0 / 6팀 완료</span>
           </div>
 
-          <!-- 팀장 입력 폼 (팀장 또는 선생님 대리 입력용) -->
           <div id="leader-input-area" class="space-y-4"></div>
         </div>
       </div>
@@ -193,4 +192,700 @@
           <div class="mb-5">
             <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">블라인드 집계 완료</span>
             <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 mt-2">2단계: 우리 반 창업팀들이 가장 많이 찾는 핵심 역량</h2>
-            <p class="text-
+            <p class="text-xs sm:text-sm text-slate-500">어느 팀이 어떤 역량을 원했는지는 비밀입니다! 전체 수요 순위를 보고 학생들은 자신의 강점을 어필할 준비를 하세요.</p>
+          </div>
+          <div id="blind-aggregation-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+      </div>
+
+      <!-- STEP 3: 일반 학생 지원 (이름 + 보유 역량 2가지) -->
+      <div id="step-content-3" class="hidden space-y-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">3단계: 지원자(학생) 본인 역량 2가지 등록</h2>
+              <p class="text-xs sm:text-sm text-slate-500">본인의 이름과 가장 자신 있는 핵심 역량 <strong>2가지</strong>를 선택해 제출하세요.</p>
+            </div>
+            <span id="student-submit-count" class="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700">현재 0명 등록됨</span>
+          </div>
+
+          <div id="student-input-area" class="mb-6"></div>
+
+          <div class="border-t border-slate-100 pt-5">
+            <h3 class="text-sm font-bold text-slate-700 mb-3">📋 드래프트 대기 명단 (실시간)</h3>
+            <div id="registered-students-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: 블라인드 드래프트 진행 및 최종 편성 -->
+      <div id="step-content-4" class="hidden space-y-5">
+        <div id="draft-turn-banner" class="bg-indigo-600 text-white rounded-2xl p-5 shadow-md flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-xs font-bold text-indigo-200 uppercase">Live Draft Turn</p>
+            <h2 id="draft-turn-title" class="text-xl sm:text-2xl font-extrabold mt-0.5">1라운드 · 1팀 팀장 차례입니다!</h2>
+            <p id="draft-turn-desc" class="text-xs sm:text-sm text-indigo-100 mt-1">아래 지원자 카드 중 우리 팀에 영입할 학생을 터치하세요.</p>
+          </div>
+          <div id="draft-teacher-actions" class="hidden flex gap-2">
+            <button onclick="skipDraftTurn()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">⏭️ 이번 차례 건너뛰기</button>
+            <button onclick="undoLastPick()" class="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition">↩️ 직전 지명 취소</button>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold text-slate-900 text-base">🙋 영입 가능한 지원자 목록 (<span id="available-count">0</span>명)</h3>
+              <span class="text-xs text-slate-500">역량 태그를 보고 영입하세요</span>
+            </div>
+            <div id="draft-pool-grid" class="grid sm:grid-cols-2 gap-3"></div>
+          </div>
+
+          <div class="lg:col-span-5 space-y-3">
+            <h3 class="font-extrabold text-slate-900 text-base px-1">🏆 6개 창업팀 실시간 로스터</h3>
+            <div id="teams-roster-list" class="space-y-3"></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_XYk3xb9hR2_06AbJMdExbx7G4BsGlxk",
+      authDomain: "startup-team-ab602.firebaseapp.com",
+      projectId: "startup-team-ab602",
+      storageBucket: "startup-team-ab602.firebasestorage.app",
+      messagingSenderId: "175794868455",
+      appId: "1:175794868455:web:ce617bc41ffe45e2141242",
+      measurementId: "G-W3VZ2SFPT7"
+    };
+
+    const COMPETENCY_TAGS = [
+      "아이디어", "제작능력", "홍보능력", "칭찬능력", "디자인감각",
+      "발표/피칭", "자료조사", "일정관리", "재무/계산", "소통/중재", "문제해결"
+    ];
+
+    const TEAM_COLORS = [
+      { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", badge: "bg-rose-600" },
+      { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-600" },
+      { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", badge: "bg-emerald-600" },
+      { bg: "bg-sky-50", border: "border-sky-200", text: "text-sky-700", badge: "bg-sky-600" },
+      { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700", badge: "bg-indigo-600" },
+      { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700", badge: "bg-purple-600" }
+    ];
+
+    let db = null;
+    let unsubscribeRoom = null;
+    let currentRoomCode = null;
+    let currentRole = null;
+    let currentTeamIndex = null;
+    let roomData = null;
+
+    let tempLeaderTags = [];
+    let tempLeaderName = "";
+    let tempStudentTags = [];
+    let tempStudentName = "";
+    let myStudentId = localStorage.getItem("startup_my_student_id") || null;
+
+    function initFirebase() {
+      const badge = document.getElementById("connection-badge");
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        badge.textContent = "🟢 실시간 클라우드 연결됨";
+        badge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800";
+      } catch (e) {
+        console.error(e);
+        badge.textContent = "⚠️ 연결 오류";
+        badge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800";
+      }
+    }
+
+    function createInitialRoomState(code) {
+      return {
+        roomCode: code,
+        step: 1,
+        teams: Array.from({ length: 6 }, (_, i) => ({
+          id: i,
+          name: `${i + 1}팀`,
+          leaderName: "",
+          wantedTags: [],
+          members: []
+        })),
+        students: [],
+        draftTurnIndex: 0,
+        draftHistory: [],
+        updatedAt: Date.now()
+      };
+    }
+
+    async function createRoom() {
+      if (!db) return alert("데이터베이스 연결을 확인해 주세요.");
+      const code = String(Math.floor(1000 + Math.random() * 9000));
+      const initialState = createInitialRoomState(code);
+      try {
+        await db.collection("rooms").doc(code).set(initialState);
+        enterRoom(code, "teacher", null);
+      } catch (err) {
+        alert("방 생성 중 오류가 발생했습니다. Firestore가 '테스트 모드'로 생성되었는지 확인해 주세요.\n" + err.message);
+      }
+    }
+
+    async function joinRoomAsParticipant() {
+      const code = document.getElementById("input-room-code").value.trim();
+      if (code.length !== 4) return alert("칠판에 적힌 4자리 방 코드를 입력해 주세요.");
+      const doc = await db.collection("rooms").doc(code).get();
+      if (!doc.exists) return alert("존재하지 않는 방 코드입니다. 번호를 다시 확인해 주세요.");
+      currentRoomCode = code;
+      roomData = doc.data();
+      renderRoleSelect();
+      showView("view-role-select");
+    }
+
+    async function joinRoomAsTeacher() {
+      const code = document.getElementById("input-room-code").value.trim();
+      if (code.length !== 4) return alert("먼저 위 칸에 4자리 방 코드를 입력한 뒤 눌러주세요.");
+      const doc = await db.collection("rooms").doc(code).get();
+      if (!doc.exists) return alert("존재하지 않는 방 코드입니다.");
+      enterRoom(code, "teacher", null);
+    }
+
+    function renderRoleSelect() {
+      const container = document.getElementById("leader-role-buttons");
+      container.innerHTML = "";
+      for (let i = 0; i < 6; i++) {
+        const team = roomData.teams[i];
+        const color = TEAM_COLORS[i];
+        const btn = document.createElement("button");
+        btn.className = `p-3.5 rounded-xl border-2 ${color.border} ${color.bg} hover:opacity-90 text-left transition`;
+        btn.innerHTML = `
+          <div class="font-extrabold ${color.text} text-base">${i + 1}팀 팀장</div>
+          <div class="text-xs text-slate-600 mt-0.5">${team.leaderName ? `등록됨: ${team.leaderName}` : "미등록"}</div>
+        `;
+        btn.onclick = () => selectRole("leader", i);
+        container.appendChild(btn);
+      }
+    }
+
+    function selectRole(role, teamIdx) {
+      if (role === "leader") {
+        const team = roomData.teams[teamIdx];
+        tempLeaderName = team.leaderName || "";
+        tempLeaderTags = [...(team.wantedTags || [])];
+      } else if (role === "student" && myStudentId) {
+        const existing = (roomData.students || []).find(s => s.id === myStudentId);
+        if (existing) {
+          tempStudentName = existing.name;
+          tempStudentTags = [...existing.tags];
+        }
+      }
+      enterRoom(currentRoomCode, role, teamIdx);
+    }
+
+    function enterRoom(code, role, teamIdx) {
+      currentRoomCode = code;
+      currentRole = role;
+      currentTeamIndex = teamIdx;
+
+      document.getElementById("room-info-bar").classList.remove("hidden");
+      document.getElementById("room-info-bar").classList.add("flex");
+      document.getElementById("display-room-code").textContent = code;
+
+      const roleBadge = document.getElementById("display-role-badge");
+      if (role === "teacher") {
+        roleBadge.textContent = "🏫 선생님(진행자)";
+        roleBadge.className = "text-xs font-bold px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white";
+      } else if (role === "leader") {
+        roleBadge.textContent = `👑 ${teamIdx + 1}팀 팀장`;
+        roleBadge.className = `text-xs font-bold px-2.5 py-1.5 rounded-lg ${TEAM_COLORS[teamIdx].badge} text-white`;
+      } else {
+        roleBadge.textContent = "🙋 일반 학생";
+        roleBadge.className = "text-xs font-bold px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white";
+      }
+
+      if (unsubscribeRoom) unsubscribeRoom();
+      unsubscribeRoom = db.collection("rooms").doc(code).onSnapshot((doc) => {
+        if (!doc.exists) return;
+        roomData = doc.data();
+        renderClassroom();
+      });
+
+      showView("view-classroom");
+    }
+
+    function leaveRoom() {
+      if (unsubscribeRoom) unsubscribeRoom();
+      currentRoomCode = null;
+      currentRole = null;
+      currentTeamIndex = null;
+      document.getElementById("room-info-bar").classList.add("hidden");
+      showView("view-lobby");
+    }
+
+    function showView(viewId) {
+      ["view-lobby", "view-role-select", "view-classroom"].forEach(id => {
+        document.getElementById(id).classList.add("hidden");
+      });
+      document.getElementById(viewId).classList.remove("hidden");
+    }
+
+    function renderClassroom() {
+      if (!roomData) return;
+      const step = roomData.step || 1;
+
+      for (let s = 1; s <= 4; s++) {
+        const pill = document.getElementById(`step-pill-${s}`);
+        if (s === step) {
+          pill.className = "py-2 px-1 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-sm";
+        } else if (s < step) {
+          pill.className = "py-2 px-1 rounded-xl text-xs sm:text-sm font-bold bg-indigo-100 text-indigo-700";
+        } else {
+          pill.className = "py-2 px-1 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-400";
+        }
+        document.getElementById(`step-content-${s}`).classList.toggle("hidden", s !== step);
+      }
+
+      document.getElementById("teacher-control-panel").classList.toggle("hidden", currentRole !== "teacher");
+
+      if (step === 1) renderStep1();
+      if (step === 2) renderStep2();
+      if (step === 3) renderStep3();
+      if (step === 4) renderStep4();
+    }
+
+    function renderStep1() {
+      const doneCount = roomData.teams.filter(t => t.wantedTags && t.wantedTags.length === 4).length;
+      document.getElementById("leader-submit-count").textContent = `${doneCount} / 6팀 완료`;
+
+      const area = document.getElementById("leader-input-area");
+
+      if (currentRole === "student") {
+        area.innerHTML = `
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center">
+            <div class="text-4xl mb-3">⏳</div>
+            <h3 class="font-bold text-lg text-slate-800 mb-1">현재 6개 팀의 팀장들이 필요한 역량을 선택하고 있습니다</h3>
+            <p class="text-sm text-slate-500">잠시 후 2단계에서 우리 반 팀들이 가장 원하는 역량 순위가 공개됩니다!</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentRole === "teacher") {
+        area.innerHTML = `
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${roomData.teams.map((team, idx) => {
+              const color = TEAM_COLORS[idx];
+              const isDone = team.wantedTags && team.wantedTags.length === 4;
+              return `
+                <div class="rounded-xl border-2 ${isDone ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200 bg-white'} p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-extrabold ${color.text}">${idx + 1}팀 ${team.leaderName ? `(${team.leaderName})` : ''}</span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                      ${isDone ? '✅ 입력 완료' : '입력 대기 중'}
+                    </span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-2">
+                    ${isDone
+                      ? team.wantedTags.map(tag => `<span class="text-xs font-semibold px-2 py-1 rounded-md bg-slate-800 text-white">🔒 ${tag}</span>`).join("")
+                      : `<span class="text-xs text-slate-400">팀장 iPad에서 4개 선택 중...</span>`
+                    }
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+        return;
+      }
+
+      const team = roomData.teams[currentTeamIndex];
+      const color = TEAM_COLORS[currentTeamIndex];
+      area.innerHTML = `
+        <div class="rounded-2xl border-2 ${color.border} ${color.bg} p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-extrabold text-lg ${color.text}">👑 ${currentTeamIndex + 1}팀 팀장 역량 선택</h3>
+            <span class="text-xs font-bold px-3 py-1 rounded-full bg-white ${color.text} border ${color.border}">
+              선택됨: ${tempLeaderTags.length} / 4개
+            </span>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">팀장 이름</label>
+            <input id="leader-name-input" type="text" value="${tempLeaderName}" placeholder="예: 김민준"
+              oninput="tempLeaderName = this.value"
+              class="w-full sm:w-64 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-2">우리 팀에 꼭 필요한 역량 4가지를 터치하세요</label>
+            <div class="flex flex-wrap gap-2">
+              ${COMPETENCY_TAGS.map(tag => {
+                const selected = tempLeaderTags.includes(tag);
+                return `
+                  <button onclick="toggleLeaderTag('${tag}')"
+                    class="tag-btn px-3.5 py-2 rounded-xl text-sm font-bold border ${
+                      selected
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }">
+                    ${selected ? '✓ ' : ''}${tag}
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </div>
+          <div class="pt-2 flex items-center gap-3">
+            <button onclick="submitLeaderTags()" class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm transition">
+              💾 ${currentTeamIndex + 1}팀 필요 역량 제출하기
+            </button>
+            ${team.wantedTags && team.wantedTags.length === 4 ? '<span class="text-xs font-bold text-emerald-700">✅ 제출 완료! (수정 후 다시 제출 가능)</span>' : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleLeaderTag(tag) {
+      if (tempLeaderTags.includes(tag)) {
+        tempLeaderTags = tempLeaderTags.filter(t => t !== tag);
+      } else {
+        if (tempLeaderTags.length >= 4) return alert("역량은 정확히 4가지만 선택할 수 있습니다.");
+        tempLeaderTags.push(tag);
+      }
+      renderStep1();
+    }
+
+    async function submitLeaderTags() {
+      if (!tempLeaderName.trim()) return alert("팀장 이름을 입력해 주세요.");
+      if (tempLeaderTags.length !== 4) return alert("필요한 역량 4가지를 모두 선택해 주세요.");
+
+      const updatedTeams = [...roomData.teams];
+      updatedTeams[currentTeamIndex] = {
+        ...updatedTeams[currentTeamIndex],
+        leaderName: tempLeaderName.trim(),
+        wantedTags: [...tempLeaderTags]
+      };
+      await db.collection("rooms").doc(currentRoomCode).update({ teams: updatedTeams });
+      alert(`${currentTeamIndex + 1}팀 필요 역량이 블라인드로 제출되었습니다!`);
+    }
+
+    function renderStep2() {
+      const counts = {};
+      COMPETENCY_TAGS.forEach(t => counts[t] = 0);
+      roomData.teams.forEach(team => {
+        (team.wantedTags || []).forEach(tag => {
+          if (counts[tag] !== undefined) counts[tag]++;
+        });
+      });
+
+      const sorted = Object.entries(counts)
+        .filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+      const container = document.getElementById("blind-aggregation-list");
+      if (sorted.length === 0) {
+        container.innerHTML = `<p class="text-sm text-slate-500 col-span-full">아직 입력된 역량 데이터가 없습니다.</p>`;
+        return;
+      }
+
+      container.innerHTML = sorted.map(([tag, count], idx) => {
+        const pct = Math.round((count / 6) * 100);
+        return `
+          <div class="p-4 rounded-xl border ${idx < 3 ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200 bg-white'}">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'} text-xs font-extrabold flex items-center justify-center">${idx + 1}</span>
+                <span class="font-extrabold text-slate-900 text-base">${tag}</span>
+              </div>
+              <span class="font-extrabold text-indigo-700 text-sm">${count}개 팀 희망</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+              <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderStep3() {
+      const students = roomData.students || [];
+      document.getElementById("student-submit-count").textContent = `현재 ${students.length}명 등록됨`;
+
+      const inputArea = document.getElementById("student-input-area");
+      if (currentRole === "student") {
+        inputArea.innerHTML = `
+          <div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-extrabold text-emerald-900 text-base">🙋 나의 강점 역량 2가지 등록하기</h3>
+              <span class="text-xs font-bold px-3 py-1 rounded-full bg-white text-emerald-700 border border-emerald-200">선택됨: ${tempStudentTags.length} / 2개</span>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">본인 이름 (학번+이름 권장)</label>
+              <input type="text" value="${tempStudentName}" placeholder="예: 10315 이서연"
+                oninput="tempStudentName = this.value"
+                class="w-full sm:w-72 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold focus:outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-2">내가 팀에 기여할 수 있는 핵심 역량 2가지를 선택하세요</label>
+              <div class="flex flex-wrap gap-2">
+                ${COMPETENCY_TAGS.map(tag => {
+                  const selected = tempStudentTags.includes(tag);
+                  return `
+                    <button onclick="toggleStudentTag('${tag}')"
+                      class="tag-btn px-3.5 py-2 rounded-xl text-sm font-bold border ${
+                        selected
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }">
+                      ${selected ? '✓ ' : ''}${tag}
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+            <button onclick="submitStudentProfile()" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition">
+              🚀 지원자 명단에 등록하기
+            </button>
+          </div>
+        `;
+      } else {
+        inputArea.innerHTML = `
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm text-slate-600">
+            💡 학생들이 각자의 iPad에서 본인의 이름과 2가지 강점 역량을 입력하면 아래 명단에 실시간으로 나타납니다.
+          </div>
+        `;
+      }
+
+      const grid = document.getElementById("registered-students-grid");
+      grid.innerHTML = students.map(s => `
+        <div class="p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div class="font-bold text-slate-900 text-sm mb-1.5">${s.name}</div>
+          <div class="flex flex-wrap gap-1">
+            ${s.tags.map(t => `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">${t}</span>`).join("")}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function toggleStudentTag(tag) {
+      if (tempStudentTags.includes(tag)) {
+        tempStudentTags = tempStudentTags.filter(t => t !== tag);
+      } else {
+        if (tempStudentTags.length >= 2) return alert("강점 역량은 2가지만 선택할 수 있습니다.");
+        tempStudentTags.push(tag);
+      }
+      renderStep3();
+    }
+
+    async function submitStudentProfile() {
+      if (!tempStudentName.trim()) return alert("본인 이름을 입력해 주세요.");
+      if (tempStudentTags.length !== 2) return alert("강점 역량 2가지를 모두 선택해 주세요.");
+
+      const students = [...(roomData.students || [])];
+      if (!myStudentId) {
+        myStudentId = "stu_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+        localStorage.setItem("startup_my_student_id", myStudentId);
+      }
+
+      const idx = students.findIndex(s => s.id === myStudentId);
+      const record = {
+        id: myStudentId,
+        name: tempStudentName.trim(),
+        tags: [...tempStudentTags],
+        draftedBy: idx >= 0 ? students[idx].draftedBy : null
+      };
+
+      if (idx >= 0) students[idx] = record;
+      else students.push(record);
+
+      await db.collection("rooms").doc(currentRoomCode).update({ students });
+      alert("지원자 명단에 등록되었습니다!");
+    }
+
+    function getSnakeTeamIndex(turnIndex) {
+      const round = Math.floor(turnIndex / 6);
+      const pos = turnIndex % 6;
+      return round % 2 === 0 ? pos : (5 - pos);
+    }
+
+    function renderStep4() {
+      const students = roomData.students || [];
+      const available = students.filter(s => s.draftedBy === null || s.draftedBy === undefined);
+      const turnIdx = roomData.draftTurnIndex || 0;
+      const activeTeamIdx = getSnakeTeamIndex(turnIdx);
+      const roundNum = Math.floor(turnIdx / 6) + 1;
+
+      const isMyTurn = (currentRole === "leader" && currentTeamIndex === activeTeamIdx) || currentRole === "teacher";
+
+      document.getElementById("draft-turn-title").textContent = available.length > 0
+        ? `${roundNum}라운드 · ${activeTeamIdx + 1}팀 (${roomData.teams[activeTeamIdx].leaderName || '팀장'}) 지명 차례입니다!`
+        : "🎉 모든 지원자의 팀 배정이 완료되었습니다!";
+
+      document.getElementById("draft-turn-desc").textContent = available.length > 0
+        ? (isMyTurn ? "👉 지금 바로 아래 지원자 카드를 터치해 우리 팀으로 영입하세요!" : `${activeTeamIdx + 1}팀 팀장이 신중하게 팀원을 고르고 있습니다...`)
+        : "선생님 화면에서 최종 팀 편성표를 엑셀(CSV)로 다운로드할 수 있습니다.";
+
+      document.getElementById("draft-teacher-actions").classList.toggle("hidden", currentRole !== "teacher");
+      document.getElementById("available-count").textContent = available.length;
+
+      const poolGrid = document.getElementById("draft-pool-grid");
+      if (available.length === 0) {
+        poolGrid.innerHTML = `<div class="col-span-full py-10 text-center text-slate-400 text-sm">남은 지원자가 없습니다.</div>`;
+      } else {
+        poolGrid.innerHTML = available.map(stu => `
+          <div onclick="${isMyTurn ? `draftStudent('${stu.id}')` : ''}"
+            class="p-4 rounded-xl border-2 ${isMyTurn ? 'border-indigo-300 bg-indigo-50/30 hover:bg-indigo-100/60 cursor-pointer active-turn' : 'border-slate-200 bg-white'} transition flex items-center justify-between">
+            <div>
+              <div class="font-extrabold text-slate-900 text-base">${stu.name}</div>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                ${stu.tags.map(t => `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">${t}</span>`).join("")}
+              </div>
+            </div>
+            ${isMyTurn ? `<span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">영입</span>` : ''}
+          </div>
+        `).join("");
+      }
+
+      const rosterList = document.getElementById("teams-roster-list");
+      rosterList.innerHTML = roomData.teams.map((team, idx) => {
+        const color = TEAM_COLORS[idx];
+        const isTurn = available.length > 0 && idx === activeTeamIdx;
+        const teamMembers = students.filter(s => s.draftedBy === idx);
+        return `
+          <div class="p-4 rounded-2xl border-2 ${isTurn ? 'border-indigo-600 ring-2 ring-indigo-200' : color.border} bg-white">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-lg ${color.badge} text-white text-xs font-extrabold">${idx + 1}팀</span>
+                <span class="font-bold text-slate-900 text-sm">팀장: ${team.leaderName || '미정'}</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500">팀원 ${teamMembers.length}명</span>
+            </div>
+            <div class="flex flex-wrap gap-1 mb-2.5">
+              ${(team.wantedTags || []).map(t => `<span class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">#${t}</span>`).join("")}
+            </div>
+            <div class="space-y-1.5 border-t border-slate-100 pt-2">
+              ${teamMembers.length === 0
+                ? `<p class="text-xs text-slate-400">아직 영입된 팀원이 없습니다</p>`
+                : teamMembers.map(m => `
+                  <div class="flex items-center justify-between text-xs bg-slate-50 px-2.5 py-1.5 rounded-lg">
+                    <span class="font-bold text-slate-800">${m.name}</span>
+                    <span class="text-slate-500">${m.tags.join(" · ")}</span>
+                  </div>
+                `).join("")
+              }
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function draftStudent(studentId) {
+      const turnIdx = roomData.draftTurnIndex || 0;
+      const activeTeamIdx = getSnakeTeamIndex(turnIdx);
+
+      if (currentRole === "leader" && currentTeamIndex !== activeTeamIdx) {
+        return alert("지금은 우리 팀 지명 차례가 아닙니다.");
+      }
+
+      const students = roomData.students.map(s =>
+        s.id === studentId ? { ...s, draftedBy: activeTeamIdx } : s
+      );
+      const history = [...(roomData.draftHistory || []), { turnIdx, teamIdx: activeTeamIdx, studentId }];
+
+      await db.collection("rooms").doc(currentRoomCode).update({
+        students,
+        draftTurnIndex: turnIdx + 1,
+        draftHistory: history
+      });
+    }
+
+    async function skipDraftTurn() {
+      const turnIdx = roomData.draftTurnIndex || 0;
+      await db.collection("rooms").doc(currentRoomCode).update({
+        draftTurnIndex: turnIdx + 1
+      });
+    }
+
+    async function undoLastPick() {
+      const history = [...(roomData.draftHistory || [])];
+      if (history.length === 0) return alert("취소할 지명 기록이 없습니다.");
+      const last = history.pop();
+      const students = roomData.students.map(s =>
+        s.id === last.studentId ? { ...s, draftedBy: null } : s
+      );
+      await db.collection("rooms").doc(currentRoomCode).update({
+        students,
+        draftTurnIndex: last.turnIdx,
+        draftHistory: history
+      });
+    }
+
+    async function setStep(newStep) {
+      await db.collection("rooms").doc(currentRoomCode).update({ step: newStep });
+    }
+
+    async function fillSampleData() {
+      if (!confirm("연습용 샘플 데이터(팀장 6명 + 학생 24명)를 채우시겠습니까?")) return;
+      const sampleLeaders = ["김도윤", "이서준", "박하은", "최지우", "정시우", "강예린"];
+      const teams = roomData.teams.map((t, idx) => {
+        const shuffled = [...COMPETENCY_TAGS].sort(() => 0.5 - Math.random());
+        return {
+          ...t,
+          leaderName: sampleLeaders[idx],
+          wantedTags: shuffled.slice(0, 4)
+        };
+      });
+
+      const sampleNames = [
+        "강민서", "고은우", "권서아", "김건우", "김다은", "김민재",
+        "김서현", "김유진", "남지호", "문채원", "박서진", "박수빈",
+        "배준서", "서지민", "송현우", "신유나", "안재현", "양소율",
+        "오승민", "윤아린", "이준혁", "임하윤", "장우진", "한지안"
+      ];
+      const students = sampleNames.map((name, i) => {
+        const shuffled = [...COMPETENCY_TAGS].sort(() => 0.5 - Math.random());
+        return {
+          id: "sample_" + i,
+          name,
+          tags: shuffled.slice(0, 2),
+          draftedBy: null
+        };
+      });
+
+      await db.collection("rooms").doc(currentRoomCode).update({
+        teams,
+        students,
+        draftTurnIndex: 0,
+        draftHistory: []
+      });
+    }
+
+    async function resetRoomData() {
+      if (!confirm("현재 방의 모든 팀장/학생 입력 데이터를 초기화하시겠습니까?")) return;
+      await db.collection("rooms").doc(currentRoomCode).set(createInitialRoomState(currentRoomCode));
+    }
+
+    function exportCSV() {
+      const students = roomData.students || [];
+      let csv = "\uFEFF팀번호,역할,이름,보유/희망역량\n";
+      roomData.teams.forEach((team, idx) => {
+        csv += `${idx + 1}팀,팀장,${team.leaderName || "미정"},"${(team.wantedTags || []).join(", ")}"\n`;
+        const members = students.filter(s => s.draftedBy === idx);
+        members.forEach(m => {
+          csv += `${idx + 1}팀,팀원,${m.name},"${m.tags.join(", ")}"\n`;
+        });
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `창업마켓_팀편성결과_${currentRoomCode}.csv`;
+      a.click();
+    }
+
+    window.addEventListener("DOMContentLoaded", initFirebase);
+  </script>
+</body>
+</html>
