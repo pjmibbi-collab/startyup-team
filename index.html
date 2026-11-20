@@ -75,7 +75,7 @@
             <ul class="text-xs text-slate-600 bg-slate-50 rounded-xl p-4 space-y-2 mb-6 border border-slate-100">
               <li>✅ 클릭 즉시 4자리 숫자 방 코드(예: 3842) 자동 생성</li>
               <li>✅ 역량 매칭 + 남녀 성비 균형 자동 검증 시스템</li>
-              <li>✅ 팀원 개별 제외(삭제), 되돌리기 및 최종 일괄 공개</li>
+              <li>✅ 결석생 대리 등록, 팀원 제외 및 최종 일괄 공개</li>
             </ul>
           </div>
           <button id="btn-create-room" onclick="createRoom()" class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
@@ -162,6 +162,30 @@
             <button onclick="setStep(4)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 transition">4단계 (드래프트 시작)</button>
           </div>
         </div>
+
+        <!-- 결석생 대리 등록 아코디언 바 -->
+        <div class="bg-slate-800/90 rounded-xl p-3.5 border border-slate-700 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-bold text-emerald-300">➕ 결석생 대리 등록 (교사 임의 추가 · 대기 명단 반영)</span>
+            <span class="text-[11px] text-slate-400">결석한 학생의 이름, 성별, 역량 2가지를 선택해 추가하세요</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <input id="absent-student-name" type="text" placeholder="결석생 이름 (예: 박지훈)"
+              class="w-36 sm:w-44 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-400" />
+            <div class="flex gap-1">
+              <button type="button" id="btn-absent-m" onclick="setAbsentGender('M')"
+                class="px-2.5 py-1.5 rounded-lg font-bold border border-slate-600 bg-slate-900 text-slate-300">남</button>
+              <button type="button" id="btn-absent-f" onclick="setAbsentGender('F')"
+                class="px-2.5 py-1.5 rounded-lg font-bold border border-slate-600 bg-slate-900 text-slate-300">여</button>
+            </div>
+            <div id="absent-tags-container" class="flex flex-wrap gap-1"></div>
+            <button type="button" onclick="addAbsentStudentByTeacher()"
+              class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition">
+              + 명단 추가
+            </button>
+          </div>
+        </div>
+
         <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800 text-xs">
           <div class="flex flex-wrap gap-2">
             <button onclick="fillSampleData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold">🧪 연습용 샘플 데이터 채우기</button>
@@ -315,11 +339,15 @@
 
     let tempLeaderTags = [];
     let tempLeaderName = "";
-    let tempLeaderGender = ""; // 'M' | 'F'
+    let tempLeaderGender = "";
     let tempStudentTags = [];
     let tempStudentName = "";
-    let tempStudentGender = ""; // 'M' | 'F'
+    let tempStudentGender = "";
     let myStudentId = localStorage.getItem("startup_my_student_id") || null;
+
+    // 교사 결석생 대리 등록용 임시 상태
+    let tempAbsentGender = "";
+    let tempAbsentTags = [];
 
     function initFirebase() {
       const badge = document.getElementById("connection-badge");
@@ -333,6 +361,7 @@
         badge.textContent = "⚠️ 연결 오류";
         badge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800";
       }
+      renderAbsentTagButtons();
     }
 
     function createInitialRoomState(code) {
@@ -471,6 +500,87 @@
       if (g === "M") return "남";
       if (g === "F") return "여";
       return "";
+    }
+
+    // ==========================================
+    // 교사 전용: 결석생 대리 등록 UI & 로직
+    // ==========================================
+    function setAbsentGender(g) {
+      tempAbsentGender = g;
+      const btnM = document.getElementById("btn-absent-m");
+      const btnF = document.getElementById("btn-absent-f");
+      btnM.className = g === "M"
+        ? "px-2.5 py-1.5 rounded-lg font-bold border border-sky-500 bg-sky-600 text-white"
+        : "px-2.5 py-1.5 rounded-lg font-bold border border-slate-600 bg-slate-900 text-slate-300";
+      btnF.className = g === "F"
+        ? "px-2.5 py-1.5 rounded-lg font-bold border border-rose-500 bg-rose-600 text-white"
+        : "px-2.5 py-1.5 rounded-lg font-bold border border-slate-600 bg-slate-900 text-slate-300";
+    }
+
+    function toggleAbsentTag(tag) {
+      if (tempAbsentTags.includes(tag)) {
+        tempAbsentTags = tempAbsentTags.filter(t => t !== tag);
+      } else {
+        if (tempAbsentTags.length >= 2) return alert("결석생 역량도 2가지만 선택해 주세요.");
+        tempAbsentTags.push(tag);
+      }
+      renderAbsentTagButtons();
+    }
+
+    function renderAbsentTagButtons() {
+      const container = document.getElementById("absent-tags-container");
+      if (!container) return;
+      container.innerHTML = COMPETENCY_TAGS.map(tag => {
+        const selected = tempAbsentTags.includes(tag);
+        return `
+          <button type="button" onclick="toggleAbsentTag('${tag}')"
+            class="px-2 py-1 rounded-md text-[11px] font-bold border transition ${
+              selected
+                ? 'bg-emerald-600 text-white border-emerald-500'
+                : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-700'
+            }">
+            ${selected ? '✓ ' : ''}${tag}
+          </button>
+        `;
+      }).join("");
+    }
+
+    async function addAbsentStudentByTeacher() {
+      if (!currentRoomCode || !roomData) return;
+      const nameInput = document.getElementById("absent-student-name");
+      const name = nameInput.value.trim();
+      if (!name) return alert("결석생 이름을 입력해 주세요.");
+      if (!tempAbsentGender) return alert("결석생 성별(남/여)을 선택해 주세요.");
+      if (tempAbsentTags.length !== 2) return alert("결석생 역량 2가지를 선택해 주세요.");
+
+      const newStudent = {
+        id: "absent_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        name,
+        gender: tempAbsentGender,
+        tags: [...tempAbsentTags],
+        isAbsentAdded: true,
+        draftedBy: null
+      };
+
+      const students = [...(roomData.students || []), newStudent];
+      await db.collection("rooms").doc(currentRoomCode).update({ students });
+
+      // 입력창 초기화
+      nameInput.value = "";
+      tempAbsentGender = "";
+      tempAbsentTags = [];
+      setAbsentGender("");
+      renderAbsentTagButtons();
+      alert(`'${name}' 학생이 지원자 대기 명단에 추가되었습니다.`);
+    }
+
+    async function deleteUnassignedStudentByTeacher(studentId) {
+      const target = (roomData.students || []).find(s => s.id === studentId);
+      if (!target) return;
+      if (!confirm(`[교사 권한] 대기 명단에서 '${target.name}' 학생을 삭제하시겠습니까?`)) return;
+
+      const students = (roomData.students || []).filter(s => s.id !== studentId);
+      await db.collection("rooms").doc(currentRoomCode).update({ students });
     }
 
     function renderClassroom() {
@@ -684,6 +794,7 @@
 
       const inputArea = document.getElementById("student-input-area");
       const listWrapper = document.getElementById("registered-students-wrapper");
+      const isTeacher = currentRole === "teacher";
 
       if (currentRole === "student") {
         listWrapper.classList.add("hidden");
@@ -745,16 +856,22 @@
       } else {
         inputArea.innerHTML = `
           <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm text-slate-600">
-            💡 학생들이 각자의 iPad에서 본인의 이름, 성별과 2가지 강점 역량을 입력하면 아래 명단에 실시간으로 나타납니다. (학생 화면에는 친구 명단이 비공개 처리됩니다)
+            💡 학생들이 각자의 iPad에서 본인의 이름, 성별과 2가지 강점 역량을 입력하면 아래 명단에 실시간으로 나타납니다. (결석한 학생은 위 교사 패널의 <strong>결석생 대리 등록</strong>으로 바로 추가할 수 있습니다)
           </div>
         `;
         listWrapper.classList.remove("hidden");
         const grid = document.getElementById("registered-students-grid");
         grid.innerHTML = students.map(s => `
           <div class="p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="font-bold text-slate-900 text-sm">${s.name}</span>
-              ${s.gender ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${s.gender === 'M' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}">${genderLabel(s.gender)}</span>` : ''}
+            <div class="flex items-center justify-between gap-1 mb-1.5">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-slate-900 text-sm">${s.name}</span>
+                ${s.gender ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${s.gender === 'M' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}">${genderLabel(s.gender)}</span>` : ''}
+                ${s.isAbsentAdded ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">결석등록</span>` : ''}
+              </div>
+              ${isTeacher ? `
+                <button onclick="deleteUnassignedStudentByTeacher('${s.id}')" class="text-[10px] text-slate-400 hover:text-rose-600 font-bold">✕</button>
+              ` : ''}
             </div>
             <div class="flex flex-wrap gap-1">
               ${s.tags.map(t => `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">${t}</span>`).join("")}
@@ -991,6 +1108,7 @@
                   <div class="flex flex-wrap items-center gap-1.5">
                     <span class="font-extrabold text-slate-900 text-base">${stu.name}</span>
                     ${stu.gender ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${stu.gender === 'M' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}">${genderLabel(stu.gender)}</span>` : ''}
+                    ${stu.isAbsentAdded ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">결석등록</span>` : ''}
                     ${blockReason ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">${blockReason}</span>` : ''}
                   </div>
                   <div class="flex flex-wrap gap-1.5 mt-1.5">
@@ -1004,7 +1122,13 @@
                     }).join("")}
                   </div>
                 </div>
-                ${interactive ? `<span class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">영입</span>` : ''}
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                  ${interactive ? `<span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">영입</span>` : ''}
+                  ${isTeacher ? `
+                    <button onclick="event.stopPropagation(); deleteUnassignedStudentByTeacher('${stu.id}')"
+                      class="text-[10px] text-slate-400 hover:text-rose-600 underline">명단삭제</button>
+                  ` : ''}
+                </div>
               </div>
             `;
           }).join("");
@@ -1061,6 +1185,7 @@
                   <div class="flex items-center justify-between text-xs bg-slate-50 px-2.5 py-1.5 rounded-lg gap-2">
                     <div>
                       <span class="font-bold text-slate-800">${m.name}${m.gender ? `(${genderLabel(m.gender)})` : ''}</span>
+                      ${m.isAbsentAdded ? `<span class="text-[10px] font-bold px-1 py-0.2 rounded bg-amber-100 text-amber-800 ml-1">결석</span>` : ''}
                       <span class="text-slate-500 ml-1.5">${m.tags.join(" · ")}</span>
                     </div>
                     ${isTeacher ? `
@@ -1221,12 +1346,12 @@
 
     function exportCSV() {
       const students = roomData.students || [];
-      let csv = "\uFEFF팀번호,역할,이름,성별,보유/희망역량\n";
+      let csv = "\uFEFF팀번호,역할,이름,성별,비고,보유/희망역량\n";
       roomData.teams.forEach((team, idx) => {
-        csv += `${idx + 1}팀,팀장,${team.leaderName || "미정"},${genderLabel(team.leaderGender)},"${(team.wantedTags || []).join(", ")}"\n`;
+        csv += `${idx + 1}팀,팀장,${team.leaderName || "미정"},${genderLabel(team.leaderGender)},,"${(team.wantedTags || []).join(", ")}"\n`;
         const members = students.filter(s => s.draftedBy === idx);
         members.forEach(m => {
-          csv += `${idx + 1}팀,팀원,${m.name},${genderLabel(m.gender)},"${m.tags.join(", ")}"\n`;
+          csv += `${idx + 1}팀,팀원,${m.name},${genderLabel(m.gender)},${m.isAbsentAdded ? "결석생대리등록" : ""},"${m.tags.join(", ")}"\n`;
         });
       });
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
